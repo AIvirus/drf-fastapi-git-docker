@@ -1,0 +1,21 @@
+# Private settings: real passwords and secret keys. Never upload these.
+.env
+**/.env
+
+# Each learner creates their own virtual environment (Lesson 02)
+.venv/
+venv/
+
+# Files Python, Django and pytest create automatically
+__pycache__/
+*.py[cod]
+.pytest_cache/
+db.sqlite3
+*.sqlite3
+*.db
+staticfiles/
+
+# Editor / OS files
+.vscode/
+.DS_Store
+Thumbs.db

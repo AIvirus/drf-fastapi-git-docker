@@ -1,0 +1,371 @@
+{
+  "info": {
+    "name": "Day 3 - Journal API (DRF)",
+    "description": "Ready-made requests for the Django REST Framework Journal API (Lessons 03-09).\n\n1. Start the API: python manage.py runserver\n2. Run the requests from top to bottom (or click Run collection).\n\nThe Login request saves the JWT tokens into collection variables, and Create article saves the new article id, so the next requests use them automatically.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{access}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000" },
+    { "key": "username", "value": "postman_user" },
+    { "key": "password", "value": "Postman-Learner-2026" },
+    { "key": "access", "value": "" },
+    { "key": "refresh", "value": "" },
+    { "key": "token", "value": "" },
+    { "key": "articleId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 Hello (no login)",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "url": "{{baseUrl}}/api/hello/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Says hello', () => pm.expect(pm.response.json().message).to.include('Hello'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Register",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"postman@example.com\",\n  \"password\": \"{{password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/register/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "// 201 the first time; 400 'already exists' if you run the collection again",
+              "pm.test('Created (201) or already exists (400)', () => pm.expect(pm.response.code).to.be.oneOf([201, 400]));",
+              "pm.test('Password is never sent back', () => pm.expect(pm.response.json()).to.not.have.property('password'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 Login (JWT) - saves tokens",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/jwt/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "const data = pm.response.json();",
+              "pm.collectionVariables.set('access', data.access);",
+              "pm.collectionVariables.set('refresh', data.refresh);",
+              "pm.test('Got access and refresh tokens', () => { pm.expect(data.access).to.be.a('string'); pm.expect(data.refresh).to.be.a('string'); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Who am I (Bearer)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/auth/me/" },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('It is me', () => pm.expect(pm.response.json().username).to.eql(pm.collectionVariables.get('username')));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 List articles (public)",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "url": "{{baseUrl}}/api/articles/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Paginated response', () => pm.expect(pm.response.json()).to.have.keys('count', 'next', 'previous', 'results'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Create article - saves articleId",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Created from Postman\",\n  \"body\": \"This article was created by the Postman collection.\",\n  \"is_published\": true\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/articles/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+              "const article = pm.response.json();",
+              "pm.collectionVariables.set('articleId', article.id);",
+              "pm.test('Author is the logged-in user', () => pm.expect(article.author).to.eql(pm.collectionVariables.get('username')));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Get one article",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/articles/{{articleId}}/" },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Correct article', () => pm.expect(pm.response.json().id).to.eql(Number(pm.collectionVariables.get('articleId'))));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Update title (PATCH)",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Updated from Postman\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/articles/{{articleId}}/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Title changed', () => pm.expect(pm.response.json().title).to.eql('Updated from Postman'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Bad data (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Hi\",\n  \"body\": \"x\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/articles/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+              "pm.test('Error is about the title', () => pm.expect(pm.response.json()).to.have.property('title'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Search articles",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "url": {
+          "raw": "{{baseUrl}}/api/articles/?search=Postman",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "articles", ""],
+          "query": [{ "key": "search", "value": "Postman" }]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.test('Found at least one', () => pm.expect(pm.response.json().count).to.be.above(0));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 Create without login (401)",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Should not work\",\n  \"body\": \"No token was sent.\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/articles/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Status is 401', () => pm.response.to.have.status(401));"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 Refresh JWT - saves new access",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"refresh\": \"{{refresh}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/jwt/refresh/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('access', pm.response.json().access);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 Login (simple Token) - saves token",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": "{{baseUrl}}/api/auth/token/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('token', pm.response.json().token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 Who am I (Token header)",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Token {{token}}" }],
+        "url": "{{baseUrl}}/api/auth/me/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 Delete article",
+      "request": { "method": "DELETE", "url": "{{baseUrl}}/api/articles/{{articleId}}/" },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Status is 204', () => pm.response.to.have.status(204));"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 Get deleted article (404)",
+      "request": { "method": "GET", "url": "{{baseUrl}}/api/articles/{{articleId}}/" },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Status is 404', () => pm.response.to.have.status(404));"]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17 List categories (public)",
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "url": "{{baseUrl}}/api/categories/"
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": ["pm.test('Status is 200', () => pm.response.to.have.status(200));"]
+          }
+        }
+      ]
+    }
+  ]
+}

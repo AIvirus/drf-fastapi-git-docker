@@ -1,0 +1,5 @@
+# Packages the Study Tasks API needs to run (also used by the Dockerfile).
+fastapi>=0.115,<1
+uvicorn[standard]>=0.30,<1
+sqlmodel>=0.0.24,<0.1
+psycopg[binary]>=3.2,<4      # only needed for PostgreSQL (Lesson 19)

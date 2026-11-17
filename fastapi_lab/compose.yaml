@@ -1,0 +1,33 @@
+# Lesson 19: run the API + a PostgreSQL database together with ONE command:
+#   docker compose up --build
+# Stop with Ctrl + C, then:  docker compose down
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: tasks
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me-local-only}
+      POSTGRES_DB: tasks
+    volumes:
+      - pgdata:/var/lib/postgresql/data   # keep the data when the container is removed
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tasks -d tasks"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    ports:
+      - "8000:8000"          # your computer's port 8000 -> the container's port 8000
+    environment:
+      APP_NAME: Study Tasks API (Docker Compose)
+      # "db" is the name of the service above. Compose gives each service a hostname.
+      DATABASE_URL: postgresql+psycopg://tasks:${POSTGRES_PASSWORD:-change-me-local-only}@db:5432/tasks
+    depends_on:
+      db:
+        condition: service_healthy   # wait until PostgreSQL is ready
+
+volumes:
+  pgdata:
